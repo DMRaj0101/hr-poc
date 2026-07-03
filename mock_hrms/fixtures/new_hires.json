@@ -8,7 +8,7 @@
     "location": "New York",
     "manager_name": "David Klein",
     "start_date": "2026-07-10",
-    "synced": true
+    "synced": false
   },
   {
     "hrms_employee_id": "EMP-1002",
@@ -19,7 +19,7 @@
     "location": "Chennai",
     "manager_name": "Priya Nair",
     "start_date": "2026-07-08",
-    "synced": true
+    "synced": false
   },
   {
     "hrms_employee_id": "EMP-1003",
@@ -30,6 +30,193 @@
     "location": "Bengaluru",
     "manager_name": "Divya Rao",
     "start_date": "2026-07-09",
-    "synced": true
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1004",
+    "full_name": "Sneha Reddy",
+    "work_email": "sneha.reddy@example.com",
+    "department": "HR",
+    "job_title": "HR Business Partner",
+    "location": "Hyderabad",
+    "manager_name": "Amit Verma",
+    "start_date": "2026-07-11",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1005",
+    "full_name": "Arjun Nair",
+    "work_email": "arjun.nair@example.com",
+    "department": "Engineering",
+    "job_title": "Software Engineer",
+    "location": "Bengaluru",
+    "manager_name": "Meera Iyer",
+    "start_date": "2026-07-12",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1006",
+    "full_name": "Priyanka Das",
+    "work_email": "priyanka.das@example.com",
+    "department": "Marketing",
+    "job_title": "Marketing Specialist",
+    "location": "Mumbai",
+    "manager_name": "Rahul Kapoor",
+    "start_date": "2026-07-13",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1007",
+    "full_name": "Vikram Singh",
+    "work_email": "vikram.singh@example.com",
+    "department": "Sales",
+    "job_title": "Sales Executive",
+    "location": "Delhi",
+    "manager_name": "Neha Malhotra",
+    "start_date": "2026-07-14",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1008",
+    "full_name": "Aisha Khan",
+    "work_email": "aisha.khan@example.com",
+    "department": "Customer Success",
+    "job_title": "Customer Success Manager",
+    "location": "Dubai",
+    "manager_name": "Omar Hassan",
+    "start_date": "2026-07-15",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1009",
+    "full_name": "Nikhil Joshi",
+    "work_email": "nikhil.joshi@example.com",
+    "department": "Operations",
+    "job_title": "Operations Manager",
+    "location": "Pune",
+    "manager_name": "Ritu Sharma",
+    "start_date": "2026-07-16",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1010",
+    "full_name": "Megha Pillai",
+    "work_email": "megha.pillai@example.com",
+    "department": "Procurement",
+    "job_title": "Procurement Specialist",
+    "location": "Kochi",
+    "manager_name": "Suresh Menon",
+    "start_date": "2026-07-17",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1011",
+    "full_name": "Rahul Chatterjee",
+    "work_email": "rahul.chatterjee@example.com",
+    "department": "Engineering",
+    "job_title": "DevOps Engineer",
+    "location": "Kolkata",
+    "manager_name": "Meera Iyer",
+    "start_date": "2026-07-18",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1012",
+    "full_name": "Lavanya Krishnan",
+    "work_email": "lavanya.krishnan@example.com",
+    "department": "Engineering",
+    "job_title": "QA Engineer",
+    "location": "Chennai",
+    "manager_name": "Meera Iyer",
+    "start_date": "2026-07-19",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1013",
+    "full_name": "Aditya Kulkarni",
+    "work_email": "aditya.k@example.com",
+    "department": "Finance",
+    "job_title": "Accountant",
+    "location": "Mumbai",
+    "manager_name": "Priya Nair",
+    "start_date": "2026-07-20",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1014",
+    "full_name": "Pooja Bansal",
+    "work_email": "pooja.bansal@example.com",
+    "department": "Legal",
+    "job_title": "Legal Counsel",
+    "location": "London",
+    "manager_name": "David Klein",
+    "start_date": "2026-07-21",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1015",
+    "full_name": "Sanjay Kumar",
+    "work_email": "sanjay.kumar@example.com",
+    "department": "IT",
+    "job_title": "Systems Engineer",
+    "location": "Hyderabad",
+    "manager_name": "Divya Rao",
+    "start_date": "2026-07-22",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1016",
+    "full_name": "Ishita Gupta",
+    "work_email": "ishita.gupta@example.com",
+    "department": "HR",
+    "job_title": "Talent Acquisition Specialist",
+    "location": "Gurugram",
+    "manager_name": "Amit Verma",
+    "start_date": "2026-07-23",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1017",
+    "full_name": "Mohammed Faizan",
+    "work_email": "mohammed.faizan@example.com",
+    "department": "Engineering",
+    "job_title": "Backend Developer",
+    "location": "Bengaluru",
+    "manager_name": "Meera Iyer",
+    "start_date": "2026-07-24",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1018",
+    "full_name": "Neha Agarwal",
+    "work_email": "neha.agarwal@example.com",
+    "department": "Product",
+    "job_title": "Product Manager",
+    "location": "Singapore",
+    "manager_name": "Jason Lim",
+    "start_date": "2026-07-25",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1019",
+    "full_name": "Harish Patel",
+    "work_email": "harish.patel@example.com",
+    "department": "Support",
+    "job_title": "Technical Support Engineer",
+    "location": "Ahmedabad",
+    "manager_name": "Kiran Shah",
+    "start_date": "2026-07-26",
+    "synced": false
+  },
+  {
+    "hrms_employee_id": "EMP-1020",
+    "full_name": "Divya Srinivasan",
+    "work_email": "divya.srinivasan@example.com",
+    "department": "Research",
+    "job_title": "Data Scientist",
+    "location": "Bengaluru",
+    "manager_name": "Anil Deshpande",
+    "start_date": "2026-07-27",
+    "synced": false
   }
 ]
