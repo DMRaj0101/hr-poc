@@ -13,7 +13,7 @@ from app import models  # noqa: F401 -- ensures models are registered before cre
 from app.ai_client import prewarm
 from app.routers import (
     auth, employees, hrms_sync, onboarding, offboarding,
-    access, assets, approvals, reports, audit, dashboard
+    access, assets, approvals, reports, audit, dashboard, profile
 )
 
 
@@ -38,6 +38,7 @@ app.include_router(approvals.router)
 app.include_router(reports.router)
 app.include_router(audit.router)
 app.include_router(dashboard.router)
+app.include_router(profile.router)
 
 @app.on_event("startup")
 def on_startup():

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import datetime
 from app.database import get_db
-from app.models import Approval
+from app.models import Approval, OnboardingTracker
 from app.schemas.employee import ApprovalDecision
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -32,4 +32,13 @@ def decide_approval(employee_id: str, approver_role: str, payload: ApprovalDecis
     record.status = payload.status
     record.decided_at = datetime.datetime.utcnow()
     db.commit()
+
+    # Mirror Manager/IT approval decisions onto the onboarding tracker so
+    # profile completion % can actually reach 100.
+    if record.workflow_type == "onboarding" and approver_role in ("Manager", "IT") and payload.status == "approved":
+        db.add(OnboardingTracker(
+            employee_id=employee_id, step=f"{approver_role} Approval", status="completed"
+        ))
+        db.commit()
+
     return {"employee_id": employee_id, "approver_role": approver_role, "status": record.status}
