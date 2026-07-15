@@ -1,95 +1,134 @@
-# Onboarding / Offboarding POC — Starter Repo
+# Onboarding / Offboarding POC
 
-Matches `POC_Technical_Architecture.md`. This is a working skeleton, not a finished
-product — every router, agent, and orchestrator is real, functional code, but
-several endpoints are intentionally thin so each of you can build on top without
-fighting merge conflicts.
+AI-assisted employee lifecycle management. Real Ollama-backed agents suggest,
+humans decide (and can edit those suggestions) via a role-based Approval
+Dashboard. Both onboarding and offboarding run through the same architecture:
+parallel HR/IT/Security/Manager task tracks, computed live from task state,
+never cached.
 
 ## Prerequisites
 
-- Python 3.11+
-- Node 20+
-- [Ollama](https://ollama.com) installed locally, with a model pulled:
-  ```
-  ollama pull gpt-oss:120b-cloud
-  ```
-- Docker + docker-compose (optional — you can also run everything locally without it)
+- Python 3.11+, Node 20+
+- [Ollama](https://ollama.com) running locally
+- Docker + docker-compose (for Postgres)
 
-## Quick start (local, no Docker)
+## Quick start
 
-**Terminal 1 — mock HRMS:**
 ```bash
+# Terminal 1 -- mock HRMS
 cd mock_hrms
 pip install -r requirements.txt --break-system-packages
 uvicorn app:app --reload --port 9000
-```
 
-**Terminal 2 — backend:**
-```bash
+# Terminal 2 -- backend
 cd backend
 pip install -r requirements.txt --break-system-packages
-# uses sqlite by default (no Postgres needed for local dev) -- see app/database.py
+cp ../.env.example .env   # then edit DATABASE_URL to point at your Postgres
 uvicorn main:app --reload --port 8000
-```
 
-**Terminal 3 — frontend:**
-```bash
+# Terminal 3 -- frontend
 cd frontend
 npm install
 npm run dev
-```
 
-**Terminal 4 — Ollama:**
-```bash
+# Terminal 4 -- Ollama
 ollama serve
 ```
 
-Then visit `http://localhost:3000`. API docs (Swagger) at `http://localhost:8000/docs`.
+Postgres via `docker-compose up -d postgres` (check your `.env`'s host port matches -- if you hit a port conflict with a native Postgres install, see the note in `.env.example`).
 
-## Quick start (Docker)
+Visit `http://localhost:3000/login`. Demo users: `hr@example.com` / `manager@example.com` / `it@example.com` / `security@example.com`, password `demo123` for all.
 
-```bash
-docker-compose up --build
+## Architecture
+
+```
+Registration (HRMS or manual)
+  -> Validation (pauses if required documents missing -- HR reviews & marks received)
+  -> Role Resolution (HRMS role used directly; AI classifier is FALLBACK ONLY)
+  -> fans out into 4 PARALLEL TRACKS: HR / IT / Security / Manager
+       - each task: AI suggests (with reasoning) -> human can edit -> approves/rejects
+       - editable tasks: Assign Applications, Asset Allocation, Assign Security
+         Groups (checklists), Project Recommendation (dropdown)
+       - compliance items are individual HR tasks, tagged category="compliance"
+  -> employee goes Active once every track's mandatory tasks are approved
 ```
 
-Ollama still needs to run on your host (not containerized — see architecture doc
-section 9 for why). The backend is configured to reach it at
-`host.docker.internal:11434` automatically.
+Offboarding mirrors this exactly (Exit Request -> Access Discovery -> Risk
+Assessment -> same 4 tracks -> Exited), using a **separate** `OffboardingTask`
+table rather than sharing onboarding's table.
 
-## Try the HRMS sync flow
+Approval is **per-task**, not per-track, and **independent of task
+completion status** -- an approver can approve/reject regardless of whether
+other tasks in the same track are done. The old per-track `Approval` table
+is fully retired for both workflows; task status itself (`pending` /
+`approved` / `rejected`) *is* the approval record now.
 
-1. `POST http://localhost:8000/hrms/sync/new-hires` (or click "Sync from HRMS" on
-   the Directory page) — pulls the 3 fixture employees from `mock_hrms/fixtures/new_hires.json`,
-   creates them, and runs the full onboarding pipeline automatically.
-2. Check `GET /onboarding/{employee_id}/status` to see the tracker steps complete.
-3. `GET /reports/{employee_id}?report_type=onboarding` generates the PDF, then
-   `GET /reports/{employee_id}/download?report_type=onboarding` fetches it.
-4. To rerun the demo from scratch: `POST http://localhost:9000/hrms/_reset` unmarks
-   all fixture records as synced.
+Track and employee completion are always **computed live** from task state
+(`services/track_status.py`), never stored/cached -- this was a deliberate
+fix after an earlier bug where a cached completion percentage drifted out
+of sync with reality.
 
-## What's built vs. what's a stub
+## Screens
 
-| Area | Status |
+| Screen | Route | Notes |
+|---|---|---|
+| Login | `/login` | JWT, not enforced on backend routes (deliberate POC scope) |
+| Executive Dashboard | `/dashboard` | 6 widgets, 4 charts, recent activity |
+| Employee Directory | `/directory` | search/filter, experience-level badge |
+| Employee Profile | `/profile/[id]` | onboarding + offboarding tasks, compliance, timeline |
+| Onboarding Tracker | `/onboarding-tracker` | read-only, live-polling, per-track expand |
+| Offboarding Tracker | `/offboarding-tracker` | same pattern, mirrors onboarding |
+| Approval Dashboard | `/approvals` | role-segregated, editable AI suggestions, per-task decisions |
+| AI Decision Center | `/ai-decisions` | consolidated reasoning + role classification confidence |
+| Compliance Dashboard | `/compliance` | aggregate compliance across both workflows, HR-owned |
+| AI Insights Dashboard | `/ai-insights` | rule-based computed insights, not AI-generated numbers |
+| Reports Dashboard | `/reports` | generate + download PDF summaries |
+
+## Backend structure
+
+```
+backend/app/
+  routers/         one file per domain (see main.py for the full list)
+  orchestrators/    onboarding_orchestrator.py, offboarding_orchestrator.py
+  agents/           role_classifier, access_recommender, hardware_recommender,
+                     compliance_recommender, risk_assessor, document_email_agent,
+                     project_recommender_agent, privileged_access_agent,
+                     team_intro_agent, team_farewell_agent
+  services/         track_status.py (shared, parameterized for both workflows),
+                     progress.py, experience.py
+  models/           14 tables -- see employee.py; ComplianceTask and the old
+                     Approval table are retired/vestigial, kept but unused
+  config_data/       roles, applications, security_groups, asset_templates,
+                      compliance_templates, required_documents, risk_factors,
+                      projects.json
+integrations/hrms_connector.py   maps mock HRMS fields -> Employee schema
+mock_hrms/                       simulated HRMS, 6 employees covering edge
+                                  cases (missing role, invalid role, experience
+                                  priority, varying document completeness)
+```
+
+## Known gaps / deliberate decisions
+
+| Item | Status |
 |---|---|
-| DB models (all 12 tables) | Done |
-| Config JSON (roles/apps/groups/assets/compliance) | Done, sample data — expand as needed |
-| `ai_client.py` (Ollama wrapper) | Done, with timeout + fallback |
-| Role/Access/Hardware/Compliance/Risk agents | Done |
-| Onboarding + Offboarding orchestrators | Done |
-| Mock HRMS service | Done, 3 sample new hires + 1 exit |
-| HRMS connector | Done |
-| Auth | Done (4 hardcoded demo users, JWT) |
-| Employees/Onboarding/Offboarding/Access/Assets/Approvals/Audit routers | Done |
-| Reports (PDF generation) | Done (basic layout — style it further if time allows) |
-| Frontend | **Stub only** — Login + Directory pages exist and call the real API. Executive Dashboard, Profile, Onboarding/Offboarding Tracker UI, and Reports Dashboard still need building. |
+| Ollama model currently set to a cloud tag | Known, intentionally left as-is for now -- swap to a local model (`qwen2.5:7b-instruct` or similar) before any live demo |
+| Auth not enforced on backend routes | Deliberate POC scope call |
+| Real PDF document upload/content validation | Parked -- current tracking is presence/absence only |
+| Mentor recommendation agent | Explicitly future scope |
+| Manager approves the shown Project Recommendation rather than picking from a live search | Simplification -- dropdown covers the full catalog, but no search/filter UI |
 
+## Testing
 
-## Notes
+Every AI agent has a rule-based fallback -- if Ollama is down or slow, the
+pipeline still completes with deterministic (if less nuanced) output rather
+than failing.
 
-- SQLite is the local dev default (`app/database.py`) so nobody's blocked on Postgres
-  being up — switch to `DATABASE_URL` pointing at Postgres for integration testing.
-- All AI agent calls have rule-based fallbacks (see `app/agents/`) — if Ollama isn't
-  running, the app still works, just with lower-quality (but deterministic) output.
-- This repo was syntax-checked but **not dependency-installed or live-tested**
-  (sandboxed build environment had no PyPI/npm access) — run the quick start above
-  end-to-end on Day 1 and report anything that breaks.
+For a full clean-database test:
+```bash
+docker exec -it poc-repo-postgres-1 psql -U poc -d onboarding_poc -c "DROP TABLE IF EXISTS employees, onboarding_tracker, offboarding_tracker, role_classifications, access_recommendations, asset_allocations, compliance_tasks, exit_requests, risk_assessments, approvals, reports, audit_log, employee_documents, onboarding_tasks, offboarding_tasks CASCADE;"
+```
+Restart the backend (recreates tables clean), reset the mock HRMS
+(`POST /hrms/_reset`), then sync (`POST /hrms/sync/new-hires`) and walk
+through Approval Dashboard -> Tracker -> Profile -> Dashboard -> Insights ->
+Compliance -> Reports for at least one full employee, onboarding through
+offboarding.

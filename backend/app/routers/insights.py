@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import Employee, OnboardingTask, AssetAllocation, RiskAssessment
+from app.models import Employee, OnboardingTask, OffboardingTask, AssetAllocation, RiskAssessment
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
@@ -72,14 +72,18 @@ def get_insights(db: Session = Depends(get_db)):
                     "value": round(slowest_avg, 1),
                 })
 
-    # 3. Employees with incomplete compliance documentation
-    incomplete_compliance_employee_ids = (
-        db.query(OnboardingTask.employee_id)
+    # 3. Employees with incomplete compliance documentation (both workflows)
+    incomplete_onboarding_ids = {
+        row[0] for row in db.query(OnboardingTask.employee_id)
         .filter(OnboardingTask.category == "compliance", OnboardingTask.status != "approved")
-        .distinct()
-        .all()
-    )
-    incomplete_count = len(incomplete_compliance_employee_ids)
+        .distinct().all()
+    }
+    incomplete_offboarding_ids = {
+        row[0] for row in db.query(OffboardingTask.employee_id)
+        .filter(OffboardingTask.category == "compliance", OffboardingTask.status != "approved")
+        .distinct().all()
+    }
+    incomplete_count = len(incomplete_onboarding_ids | incomplete_offboarding_ids)
     if incomplete_count > 0:
         insights.append({
             "category": "compliance_incomplete",

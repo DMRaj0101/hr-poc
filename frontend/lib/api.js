@@ -1,6 +1,6 @@
 // Single place all screens call through -- keeps the API base URL, auth
 // token attachment, and fetch error handling consistent across every page.
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // --- token storage ---
 export function setToken(token, role) {
@@ -57,12 +57,17 @@ export const api = {
     }),
   approvalsForRole: (role) => request(`/approvals/pending/${role}`),
   insightsSummary: () => request("/insights/summary"),
+  employeeDecisions: (id) => request(`/employees/${id}/decisions`),
+  complianceSummary: () => request("/compliance/summary"),
+  generateReport: (id, reportType) => request(`/reports/${id}?report_type=${reportType}`),
   offboardingStatus: (id) => request(`/offboarding/${id}/status`),
-  accessRecommendation: (id) => request(`/access/${id}/recommendation`),
-  assets: (id) => request(`/assets/${id}`),
-  approvals: (id) => request(`/approvals/${id}`),
-  decideApproval: (id, role, status) =>
-    request(`/approvals/${id}/${role}/decide`, { method: "POST", body: JSON.stringify({ status }) }),
+  offboardingTasks: (id) => request(`/offboarding/${id}/tasks`),
+  decideOffboardingTask: (id, taskId, status) =>
+    request(`/offboarding/${id}/tasks/${taskId}/decide`, { method: "POST", body: JSON.stringify({ status }) }),
+  updateOffboardingTaskSelection: (id, taskId, selectedOptions) =>
+    request(`/offboarding/${id}/tasks/${taskId}/selection`, {
+      method: "PATCH", body: JSON.stringify({ selected_options: selectedOptions }),
+    }),
   auditTrail: (id) => request(`/audit/${id}`),
   dashboardSummary: () => request("/dashboard/summary"),
 };

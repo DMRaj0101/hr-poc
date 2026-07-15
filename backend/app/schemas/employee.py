@@ -38,7 +38,9 @@ class EmployeeOut(BaseModel):
 
 
 class ExitRequestCreate(BaseModel):
-    employee_id: str
+    """employee_id is deliberately NOT here -- the route it's used on
+    (POST /offboarding/{employee_id}/start) already has it in the URL
+    path. Requiring it twice was a redundant, easy-to-miss bug."""
     last_working_day: Optional[str] = None
     exit_reason: Optional[str] = None
     sync_source: Optional[str] = "manual"

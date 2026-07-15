@@ -1,16 +1,13 @@
 """
 Executive Dashboard summary endpoint.
 
-FIX applied per the gap-check after the task-level-approval redesign:
-pending_approvals used to only count the Approval table, which now only
-gets rows for OFFBOARDING (onboarding approval moved to per-task
-OnboardingTask rows). Left as-is, this widget silently underused. Now
-counts both: pending onboarding tasks + pending offboarding approvals.
+pending_approvals counts pending tasks across BOTH OnboardingTask and
+OffboardingTask -- the old Approval table is fully retired for both
+workflows now (see routers/approvals.py), so nothing should reference
+it here anymore.
 
-NOTE: reconstructed from the version you confirmed working earlier
-(this file wasn't in my working copy -- only ever given to you as a
-code block). Sanity-check this against your actual current file before
-overwriting, in case you've made other tweaks since.
+compliance_completion_pct likewise combines category="compliance" rows
+from both task tables, matching what the Compliance Dashboard shows.
 """
 import datetime
 from fastapi import APIRouter, Depends
@@ -18,8 +15,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
 from app.models import (
-    Employee, Approval, RiskAssessment,
-    OnboardingTracker, OffboardingTracker, AuditLog, OnboardingTask,
+    Employee, RiskAssessment,
+    OnboardingTracker, OffboardingTracker, AuditLog, OnboardingTask, OffboardingTask,
 )
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -53,18 +50,22 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     pending_offboarding = db.query(Employee).filter(Employee.status == "offboarding").count()
 
     pending_onboarding_tasks = db.query(OnboardingTask).filter(OnboardingTask.status == "pending").count()
-    pending_offboarding_approvals = db.query(Approval).filter(
-        Approval.status == "pending", Approval.workflow_type == "offboarding"
-    ).count()
-    pending_approvals = pending_onboarding_tasks + pending_offboarding_approvals
+    pending_offboarding_tasks = db.query(OffboardingTask).filter(OffboardingTask.status == "pending").count()
+    pending_approvals = pending_onboarding_tasks + pending_offboarding_tasks
 
     high_risk_employees = db.query(RiskAssessment).filter(RiskAssessment.risk_level == "High").count()
 
-    total_tasks = db.query(OnboardingTask).filter(OnboardingTask.category == "compliance").count()
-    completed_tasks = db.query(OnboardingTask).filter(
+    onboarding_compliance_total = db.query(OnboardingTask).filter(OnboardingTask.category == "compliance").count()
+    onboarding_compliance_done = db.query(OnboardingTask).filter(
         OnboardingTask.category == "compliance", OnboardingTask.status == "approved"
     ).count()
-    compliance_completion_pct = round((completed_tasks / total_tasks * 100), 1) if total_tasks else 0.0
+    offboarding_compliance_total = db.query(OffboardingTask).filter(OffboardingTask.category == "compliance").count()
+    offboarding_compliance_done = db.query(OffboardingTask).filter(
+        OffboardingTask.category == "compliance", OffboardingTask.status == "approved"
+    ).count()
+    total_compliance = onboarding_compliance_total + offboarding_compliance_total
+    done_compliance = onboarding_compliance_done + offboarding_compliance_done
+    compliance_completion_pct = round((done_compliance / total_compliance * 100), 1) if total_compliance else 0.0
 
     onboarded_today = (
         db.query(OnboardingTracker)

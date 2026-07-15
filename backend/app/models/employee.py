@@ -199,6 +199,33 @@ class OnboardingTask(Base):
     decided_at = Column(DateTime, nullable=True)
 
 
+class OffboardingTask(Base):
+    """Mirrors OnboardingTask exactly, but kept as a SEPARATE table
+    (deliberate choice -- onboarding and offboarding are conceptually
+    distinct workflows, and a shared table with a workflow_type
+    discriminator was considered and rejected in favor of this cleaner
+    separation). Same fields, same semantics: status is an approval
+    state (pending/approved/rejected), task_type drives editable
+    selection UI the same way, category="compliance" isolates exit
+    compliance items under HR the same way onboarding does."""
+    __tablename__ = "offboarding_tasks"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    employee_id = Column(String, ForeignKey("employees.id"), nullable=False)
+    track = Column(String, nullable=False)  # HR | IT | Security | Manager
+    task_name = Column(String, nullable=False)
+    status = Column(String, default="pending")  # pending | approved | rejected
+    is_mandatory = Column(Boolean, default=True)
+    is_ai_generated = Column(String, default="false")
+    ai_recommendation = Column(Text, nullable=True)
+    task_type = Column(String, default="simple")  # simple | multi_select | single_select
+    options = Column(Text, nullable=True)
+    selected_options = Column(Text, nullable=True)
+    category = Column(String, nullable=True)  # e.g. "compliance"
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    decided_at = Column(DateTime, nullable=True)
+
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
 

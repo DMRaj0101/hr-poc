@@ -2,16 +2,12 @@
 Aggregates everything needed for the Employee Profile screen into one call --
 personal info, employment details, real completion %, timeline, recent activity.
 
-FIXES applied per the gap-check after the task-level-approval redesign:
-- experience_level now included in employment_details (was in the DB/schema
-  but never actually surfaced here -- the doc requires it "become part of
-  the employee profile", this was a genuine miss).
-- The old "approvals" section queried the Approval table, which no longer
-  gets any rows for onboarding (approval moved to per-task). It's replaced
-  with onboarding_tasks (grouped by track, with live track_status) for
-  onboarding employees, while offboarding_approvals (still Approval-table
-  based, untouched) covers the offboarding flow. Both are always returned;
-  whichever is empty just means that flow hasn't started for this employee.
+Both onboarding_tasks and offboarding_tasks are grouped by track with
+live-computed track_status, from OnboardingTask/OffboardingTask directly.
+The old Approval table is fully retired for both workflows now -- nothing
+here queries it. compliance_tasks combines category="compliance" rows
+from both task tables, so an employee who's been through both flows
+shows their complete compliance history in one place.
 """
 import json
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,12 +15,23 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
     Employee, OnboardingTracker, OffboardingTracker, AccessRecommendation,
-    AssetAllocation, Approval, AuditLog, OnboardingTask,
+    AssetAllocation, AuditLog, OnboardingTask, OffboardingTask,
 )
 from app.services.progress import get_onboarding_completion_pct
-from app.services.track_status import get_all_track_statuses, TRACKS
+from app.services.track_status import get_all_track_statuses, get_all_offboarding_track_statuses, TRACKS
 
 router = APIRouter(prefix="/employees", tags=["profile"])
+
+
+def _tasks_by_track(task_rows):
+    by_track = {track: [] for track in TRACKS}
+    for t in task_rows:
+        by_track.setdefault(t.track, []).append({
+            "task_name": t.task_name, "status": t.status, "is_mandatory": t.is_mandatory,
+            "is_ai_generated": t.is_ai_generated == "true", "ai_recommendation": t.ai_recommendation,
+            "category": t.category,
+        })
+    return by_track
 
 
 @router.get("/{employee_id}/profile")
@@ -67,24 +74,17 @@ def get_profile(employee_id: str, db: Session = Depends(get_db)):
 
     access = db.query(AccessRecommendation).filter(AccessRecommendation.employee_id == employee_id).order_by(AccessRecommendation.created_at.desc()).first()
     assets = db.query(AssetAllocation).filter(AssetAllocation.employee_id == employee_id).order_by(AssetAllocation.created_at.desc()).first()
-    compliance_tasks = db.query(OnboardingTask).filter(
-        OnboardingTask.employee_id == employee_id, OnboardingTask.category == "compliance"
-    ).all()
 
-    # Onboarding: task-level, grouped by track, with live-computed track status
     onboarding_tasks_raw = db.query(OnboardingTask).filter(OnboardingTask.employee_id == employee_id).all()
-    onboarding_tasks_by_track = {track: [] for track in TRACKS}
-    for t in onboarding_tasks_raw:
-        onboarding_tasks_by_track.setdefault(t.track, []).append({
-            "task_name": t.task_name, "status": t.status, "is_mandatory": t.is_mandatory,
-            "is_ai_generated": t.is_ai_generated == "true", "ai_recommendation": t.ai_recommendation,
-        })
-    track_status = get_all_track_statuses(db, employee_id)
+    offboarding_tasks_raw = db.query(OffboardingTask).filter(OffboardingTask.employee_id == employee_id).all()
 
-    # Offboarding: unchanged, still Approval-table based
-    offboarding_approvals = db.query(Approval).filter(
-        Approval.employee_id == employee_id, Approval.workflow_type == "offboarding"
-    ).all()
+    compliance_tasks = [
+        {"task_name": t.task_name, "status": t.status, "flow": "onboarding"}
+        for t in onboarding_tasks_raw if t.category == "compliance"
+    ] + [
+        {"task_name": t.task_name, "status": t.status, "flow": "offboarding"}
+        for t in offboarding_tasks_raw if t.category == "compliance"
+    ]
 
     return {
         "personal_information": {
@@ -106,10 +106,9 @@ def get_profile(employee_id: str, db: Session = Depends(get_db)):
         "applications": json.loads(access.applications) if access else [],
         "security_groups": json.loads(access.security_groups) if access else [],
         "assets": json.loads(assets.asset_list) if assets else [],
-        "compliance_tasks": [{"task_name": t.task_name, "status": t.status} for t in compliance_tasks],
-        "onboarding_tasks": onboarding_tasks_by_track,
-        "onboarding_track_status": track_status,
-        "offboarding_approvals": [
-            {"approver_role": a.approver_role, "status": a.status} for a in offboarding_approvals
-        ],
+        "compliance_tasks": compliance_tasks,
+        "onboarding_tasks": _tasks_by_track(onboarding_tasks_raw),
+        "onboarding_track_status": get_all_track_statuses(db, employee_id),
+        "offboarding_tasks": _tasks_by_track(offboarding_tasks_raw),
+        "offboarding_track_status": get_all_offboarding_track_statuses(db, employee_id),
     }

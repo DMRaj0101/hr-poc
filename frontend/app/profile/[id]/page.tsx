@@ -24,6 +24,31 @@ function ArrowLeftIcon({ className }: { className?: string }) {
   );
 }
 
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function ActivityIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+    </svg>
+  );
+}
+
 const STATUS_STYLES: Record<string, string> = {
   active: "bg-green-100 text-green-700",
   onboarding: "bg-amber-100 text-amber-700",
@@ -60,30 +85,11 @@ const TIMELINE_DOT_STYLES: Record<string, string> = {
   blocked: "bg-orange-500",
 };
 
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
-
-function ActivityIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-    </svg>
-  );
-}
+const COMPLIANCE_ICON_STYLES: Record<string, string> = {
+  approved: "bg-green-100 text-green-600",
+  rejected: "bg-red-100 text-red-600",
+  pending: "border-2 border-gray-300 bg-white",
+};
 
 export default function ProfilePage() {
   useAuth();
@@ -107,6 +113,7 @@ export default function ProfilePage() {
 
   const { personal_information: p, employment_details: e } = profile;
   const tracks = Object.keys(profile.onboarding_tasks || {});
+  const offboardingTracks = Object.keys(profile.offboarding_tasks || {});
 
   const initials = p.name
     ?.split(" ")
@@ -224,6 +231,81 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* Applications / Security Groups / Assets */}
+          <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-xs font-bold uppercase tracking-wide text-gray-700">
+                Applications
+              </p>
+              {profile.applications?.length > 0 ? (
+                <ul className="space-y-2.5 text-sm text-[#14213D]">
+                  {profile.applications.map((a: string) => (
+                    <li key={a}>{a}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400">No applications assigned yet.</p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-xs font-bold uppercase tracking-wide text-gray-700">
+                Security Groups
+              </p>
+              {profile.security_groups?.length > 0 ? (
+                <ul className="space-y-2.5 text-sm text-[#14213D]">
+                  {profile.security_groups.map((g: string) => (
+                    <li key={g}>{g}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400">No security groups assigned yet.</p>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <p className="mb-4 text-xs font-bold uppercase tracking-wide text-gray-700">
+                Assets
+              </p>
+              {profile.assets?.length > 0 ? (
+                <ul className="space-y-2.5 text-sm text-[#14213D]">
+                  {profile.assets.map((a: string) => (
+                    <li key={a}>{a}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400">No assets assigned yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Compliance */}
+          {profile.compliance_tasks?.length > 0 && (
+            <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-700">
+                Compliance
+              </h2>
+              <div className="space-y-2">
+                {profile.compliance_tasks.map((t: any) => (
+                  <div key={t.task_name} className="flex items-center gap-2 text-sm">
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                        COMPLIANCE_ICON_STYLES[t.status] || "border-2 border-gray-300 bg-white"
+                      }`}
+                    >
+                      {t.status === "approved" && <CheckIcon className="h-3 w-3" />}
+                      {t.status === "rejected" && <XIcon className="h-3 w-3" />}
+                      {t.status === "pending" && <span className="h-0.5 w-2 rounded-full bg-gray-300" />}
+                    </span>
+                    <span className={t.status === "approved" ? "text-gray-400 line-through" : "text-[#14213D]"}>
+                      {t.task_name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Onboarding Tasks by Track */}
           {tracks.length > 0 && (
             <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -312,6 +394,81 @@ export default function ProfilePage() {
                   })}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Offboarding Tasks by Track */}
+          {offboardingTracks.length > 0 && (
+            <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <div className="border-b border-gray-100 bg-[#F4F1EC] px-6 py-4">
+                <h2 className="text-base font-bold text-[#14213D]">
+                  Offboarding Tasks by Track
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 lg:grid-cols-3">
+                {offboardingTracks.map((track) => {
+                  const tasks = profile.offboarding_tasks[track] || [];
+                  const status = profile.offboarding_track_status?.[track];
+                  if (tasks.length === 0) return null;
+
+                  const completedCount = tasks.filter((t: any) => t.status === "approved").length;
+
+                  return (
+                    <div
+                      key={track}
+                      className="rounded-xl border border-gray-200 p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="font-semibold text-[#14213D]">{track}</span>
+                        {status && (
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${
+                              TRACK_STATUS_STYLES[status] || "bg-gray-100 text-gray-500"
+                            }`}
+                          >
+                            {status === "in_progress"
+                              ? `${completedCount}/${tasks.length} Done`
+                              : TRACK_STATUS_LABELS[status] || status}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        {tasks.map((t: any, idx: number) => (
+                          <div key={idx} className="flex items-center gap-2 text-sm">
+                            <span
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                                t.status === "approved"
+                                  ? "bg-green-100 text-green-600"
+                                  : t.status === "rejected"
+                                  ? "bg-red-100 text-red-600"
+                                  : "border-2 border-gray-300 bg-white"
+                              }`}
+                            >
+                              {t.status === "approved" && <CheckIcon className="h-3 w-3" />}
+                              {t.status === "rejected" && <XIcon className="h-3 w-3" />}
+                              {t.status === "pending" && <span className="h-0.5 w-2 rounded-full bg-gray-300" />}
+                            </span>
+
+                            <span className={t.status === "approved" ? "text-gray-400 line-through" : "text-[#14213D]"}>
+                              {t.task_name}
+                            </span>
+
+                            {!t.is_mandatory && (
+                              <span className="text-xs text-gray-400">(optional)</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <p className="mt-3 text-xs text-gray-400">
+                        {status !== "in_progress" && `${completedCount} of ${tasks.length} tasks complete`}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 
