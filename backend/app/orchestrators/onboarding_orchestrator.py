@@ -291,6 +291,15 @@ def create_document_review_task(db: Session, employee_id: str, auto_matched_name
     note = ""
     if auto_matched_names:
         note += f"Automatically matched: {', '.join(auto_matched_names)}. "
+
+        validated_docs = db.query(EmployeeDocument).filter(
+            EmployeeDocument.employee_id == employee_id,
+            EmployeeDocument.document_name.in_(auto_matched_names),
+        ).all()
+        for doc in validated_docs:
+            if doc.validation_status:
+                note += f"[{doc.document_name}: {doc.validation_status}] "
+
     if unmatched_count > 0:
         note += (
             f"{unmatched_count} received file(s) could not be auto-matched (multiple files/documents "

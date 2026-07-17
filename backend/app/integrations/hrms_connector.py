@@ -34,6 +34,7 @@ def _map_new_hire(record: dict) -> EmployeeCreate:
         role=record.get("role"),
         experience_level=record.get("experience_level"),
         years_of_experience=record.get("years_of_experience"),
+        ssn_number=record.get("ssn_number"),
         office=record.get("location"),
         manager=record.get("manager_name"),
         joining_date=record.get("start_date"),
@@ -56,7 +57,7 @@ def pull_new_hires(db: Session) -> list[Employee]:
         employee_kwargs = mapped.model_dump()
         docs = employee_kwargs.pop("documents_submitted", None)
         employee_kwargs["documents_submitted"] = json.dumps(docs) if docs is not None else None
-        years_exp = employee_kwargs.pop("years_of_experience", None)
+        years_exp = employee_kwargs.get("years_of_experience")
         employee_kwargs["experience_level"] = derive_experience_level(
             title=employee_kwargs.get("title"), years_of_experience=years_exp,
             explicit=employee_kwargs.get("experience_level"),

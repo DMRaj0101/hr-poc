@@ -1,0 +1,7 @@
+{
+  "Government ID Proof": "ssn",
+  "Bank Account Details": "bank_details",
+  "Previous Employment Relieving Letter": "signature",
+  "Address Proof": "generic",
+  "Educational Certificates": "generic"
+}

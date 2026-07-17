@@ -84,3 +84,13 @@ def get_all_project_names() -> list[str]:
 
 def get_document_keywords() -> dict:
     return _load("documents_keywords.json")
+
+def get_document_validator_map() -> dict:
+    """document_name -> validator key ('ssn' | 'bank_details' | 'signature' |
+    'generic'). Read by app/agents/document_content_validator.py to decide
+    which agent runs against a given required document once its file is
+    received. 'resume' is deliberately not listed here -- Resume isn't one
+    of the required onboarding documents, it's validated separately via
+    app/agents/resume_validation_agent.py at whatever point the resume
+    file becomes available (see routers/onboarding.py resume endpoint)."""
+    return _load("document_validators.json")

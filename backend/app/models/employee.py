@@ -3,7 +3,7 @@ Core SQLAlchemy models. Matches the schema in POC_Technical_Architecture.md sect
 """
 import datetime
 import uuid
-from sqlalchemy import Column, String, DateTime, Float, ForeignKey, Text, Boolean
+from sqlalchemy import Column, String, DateTime, Float, ForeignKey, Text, Boolean, Integer
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -30,6 +30,8 @@ class Employee(Base):
     status = Column(String, default="registered")   # registered -> documents_pending -> onboarding -> active -> offboarding -> exited
     activated_at = Column(DateTime, nullable=True)  # set when status flips to 'active' -- lets AI Insights compute real onboarding duration per department
     documents_submitted = Column(Text, nullable=True)  # JSON-encoded list, as reported by HRMS/manual entry at registration time
+    ssn_number = Column(String, nullable=True)  # from HRMS -- ground truth used by ssn_validation_agent to check the ID proof document
+    years_of_experience = Column(Integer, nullable=True)  # from HRMS -- ground truth used by resume_validation_agent
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
@@ -154,7 +156,8 @@ class EmployeeDocument(Base):
     requested_at = Column(DateTime, default=datetime.datetime.utcnow)
     received_at = Column(DateTime, nullable=True)
     file_path = Column(String, nullable=True)  # where the downloaded attachment is stored, once received
-
+    validation_status = Column(String, nullable=True)  # PASS | FAIL | NEEDS_REVIEW | SKIPPED -- set by document_content_validator once file_path is populated
+    validation_detail = Column(Text, nullable=True)  # JSON-encoded result dict from the relevant validation agent (resume/bank_details/signature/ssn)
 class DocumentRequestEmail(Base):
     """Tracks the real email lifecycle: drafted -> sent -> replied.
     message_id is the SMTP Message-ID of the SENT email -- used to

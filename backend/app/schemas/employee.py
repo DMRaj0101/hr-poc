@@ -15,8 +15,8 @@ class EmployeeCreate(BaseModel):
     joining_date: Optional[str] = None
     sync_source: Optional[str] = "manual"
     documents_submitted: Optional[list[str]] = None  # docs already provided at registration time
-    years_of_experience: Optional[int] = None  # not stored -- only used to derive experience_level if not explicitly set
-
+    years_of_experience: Optional[int] = None  # stored AND used to derive experience_level if not explicitly set -- also the ground truth resume_validation_agent checks against
+    ssn_number: Optional[str] = None  # from HRMS -- ground truth ssn_validation_agent checks the ID proof document against
 
 class EmployeeOut(BaseModel):
     id: str
