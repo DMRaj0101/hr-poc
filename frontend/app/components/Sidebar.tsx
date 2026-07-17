@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../../lib/useAuth";
+import HrAssistantWidget from "./HrAssistantWidget";
 
 function DashboardIcon({ className }: { className?: string }) {
   return (
@@ -86,15 +87,57 @@ function LogoutIcon({ className }: { className?: string }) {
   );
 }
 
-const menu = [
+// Nav items up to and including "AI Insights" — the chatbot trigger is
+// rendered right after this group, then "Compliance Dashboard" follows.
+const menuBeforeAssistant = [
   { href: "/dashboard", label: "Executive Dashboard", icon: DashboardIcon },
   { href: "/directory", label: "Employee Directory", icon: DirectoryIcon },
   { href: "/onboarding-tracker", label: "Onboarding Tracker", icon: OnboardingIcon },
   { href: "/offboarding-tracker", label: "Offboarding Tracker", icon: OffboardingIcon },
   { href: "/approvals", label: "Approval Dashboard", icon: ApprovalsIcon },
   { href: "/ai-insights", label: "AI Insights", icon: AiIcon },
+];
+
+const menuAfterAssistant = [
   { href: "/compliance", label: "Compliance Dashboard", icon: ComplianceIcon },
 ];
+
+function NavLink({
+  item,
+  collapsed,
+  isActive,
+}: {
+  item: { href: string; label: string; icon: React.ComponentType<{ className?: string }> };
+  collapsed: boolean;
+  isActive: boolean;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      title={collapsed ? item.label : undefined}
+      className={`
+        flex
+        items-center
+        ${collapsed ? "justify-center px-0" : "gap-3 px-4"}
+        py-3
+        rounded-lg
+        text-sm
+        mb-2
+        transition-colors
+
+        ${
+          isActive
+            ? "bg-[#243654] text-white"
+            : "text-gray-300 hover:bg-[#243654] hover:text-white"
+        }
+      `}
+    >
+      <Icon className="h-5 w-5 shrink-0" />
+      {!collapsed && <span>{item.label}</span>}
+    </Link>
+  );
+}
 
 export default function Sidebar({
   children,
@@ -162,37 +205,15 @@ export default function Sidebar({
             ${collapsed ? "px-2" : "px-3"}
           `}
         >
-          {menu.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
+          {menuBeforeAssistant.map((item) => (
+            <NavLink key={item.href} item={item} collapsed={collapsed} isActive={pathname === item.href} />
+          ))}
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={collapsed ? item.label : undefined}
-                className={`
-                  flex
-                  items-center
-                  ${collapsed ? "justify-center px-0" : "gap-3 px-4"}
-                  py-3
-                  rounded-lg
-                  text-sm
-                  mb-2
-                  transition-colors
+          <HrAssistantWidget collapsed={collapsed} />
 
-                  ${
-                    isActive
-                      ? "bg-[#243654] text-white"
-                      : "text-gray-300 hover:bg-[#243654] hover:text-white"
-                  }
-                `}
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
+          {menuAfterAssistant.map((item) => (
+            <NavLink key={item.href} item={item} collapsed={collapsed} isActive={pathname === item.href} />
+          ))}
         </nav>
 
         {/* Footer */}

@@ -39,20 +39,57 @@ const T = {
   purple: "#7e6bd6",
 };
 
+/* Palette cycled across department slices — extend if you expect
+   more than 6 departments at once. */
+const DEPT_COLORS = [T.blue, T.green, T.amber, T.purple, T.red, "#0ea5a5"];
+
 /* ============================================================
-   Sample data (frontend-only, mirrors the reviewed design)
-   Swap these for real summary fields as the backend adds them.
+   AI vs Manual progress — MOCK DATA.
+
+   Backend today only exposes `onboarding_trend` as "employees onboarded
+   per day" (see /dashboard/summary) — it does NOT yet break that count
+   down by "completed via AI agent" vs "completed manually by HR/IT".
+   So this chart cannot be wired to real data until that split exists
+   on the backend.
+
+   To make this real, the backend would need something like:
+     onboarding_progress_weekly: [
+       { week: "Week 1", ai_completed: <count>, manual_completed: <count> },
+       ...
+     ]
+   where ai_completed = employees whose onboarding tasks were fully
+   auto-completed by the agent pipelines (Validation/IT/HR/Manager/Security
+   tracks you already see in recent_activity), and manual_completed =
+   employees where a human had to step in (e.g. the "Blocked -- missing
+   documents" / manual document-approval cases already in recent_activity).
+
+   What each line means, until that field exists:
+   - "AI progress" (blue, solid) = cumulative count of employees whose
+     onboarding was completed end-to-end by the agent pipelines, with no
+     human intervention needed, tracked week over week.
+   - "Manual progress" (red, dashed) = cumulative count of employees
+     whose onboarding needed a human (HR/IT) to step in at some point
+     (e.g. missing documents, manual approval), tracked the same way.
+   - Both lines are cumulative and capped at total_employees, so together
+     they explain how the current employee count was reached — how much
+     of it the AI agent handled on its own vs how much needed a human.
+
+   Until the backend field exists, this is illustrative mock data:
+   X-axis = week, Y-axis = cumulative employee count onboarded through
+   each path, capped at total_employees so it stays consistent with the
+   KPI cards.
 ============================================================ */
 
-const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"];
-
 const onboardingAiManual = [
-  { week: "Week 1", ai: 0, manual: 0 },
-  { week: "Week 2", ai: 3, manual: 1 },
-  { week: "Week 3", ai: 3, manual: 1 },
-  { week: "Week 4", ai: 3, manual: 1 },
+  { week: "Week 1", ai: 1, manual: 0 },
+  { week: "Week 2", ai: 4, manual: 1 },
+  { week: "Week 3", ai: 6, manual: 2 },
+  { week: "Week 4", ai: 6, manual: 3 },
 ];
 
+// No offboarding activity yet (offboarded_today: 0) — kept as an honest
+// all-zero line rather than invented numbers, until there's real
+// offboarding activity to chart.
 const offboardingAiManual = [
   { week: "Week 1", ai: 0, manual: 0 },
   { week: "Week 2", ai: 0, manual: 0 },
@@ -60,27 +97,7 @@ const offboardingAiManual = [
   { week: "Week 4", ai: 0, manual: 0 },
 ];
 
-const deptOnboarded = [
-  { name: "IT", value: 2, color: T.blue },
-  { name: "Finance", value: 4, color: T.green },
-  
-];
-
-const deptOffboarded = [{ name: "No activity", value: 1, color: T.border }];
-
-const approvalOnboarding = [
-  { name: "IT (11)", value: 11, color: T.blue },
-  { name: "HR (7)", value: 7, color: T.amber },
-];
-
-const offboardingPending = 0;
-
-// Each offboarding employee requires 2 approvals (IT + HR)
-const offboardingApprovalCount = 0;
-
-const approvalOffboarding = [{ name: "No pending approvals", value: 1, color: T.border }];
-
-/* Insights now come live from api.insightsSummary() (same source as the
+/* Insights come live from api.insightsSummary() (same source as the
    AI Insights Dashboard page). Category → label/color mirrors that page's
    CATEGORY_TITLE / CATEGORY_COLOR / CATEGORY_BG so the two stay consistent. */
 
@@ -183,7 +200,7 @@ function DonutChart({
             nameKey="name"
             innerRadius="60%"
             outerRadius="85%"
-            paddingAngle={3}
+            paddingAngle={data.length > 1 ? 3 : 0}
             stroke="#fff"
             strokeWidth={2}
             activeIndex={activeIndex ?? undefined}
@@ -314,14 +331,60 @@ export default function DashboardPage() {
     );
   }
 
-const pendingOnboarding = Number(summary.pending_onboarding ?? 0);
-const pendingOffboarding = Number(summary.pending_offboarding ?? 0);
+  // ---- Values sourced directly from the backend summary payload ----
+  const totalEmployees = Number(summary.total_employees ?? 0);
+  const onboardedToday = Number(summary.onboarded_today ?? 0);
+  const offboardedToday = Number(summary.offboarded_today ?? 0);
+  const pendingOnboarding = Number(summary.pending_onboarding ?? 0);
+  const pendingOffboarding = Number(summary.pending_offboarding ?? 0);
+  // Backend already computes this total (IT + HR combined) — use it directly
+  // instead of re-deriving it on the frontend.
+  const pendingApprovalsTotal = Number(summary.pending_approvals ?? 0);
 
-// HR + IT approval for every pending employee
-const pendingApprovalsTotal =
-  (pendingOnboarding + pendingOffboarding) * 2;
-  // derive offboarding approval count from the sample data (fallback from summary could be used)
-  const offboardingApprovalCount = approvalOffboarding.reduce((s, e) => s + (e.value || 0), 0);
+  // Backend doesn't provide a real IT/HR or per-track approval breakdown —
+  // it only gives one combined total (pending_approvals). Rather than
+  // guessing a split (previous version assumed "×2 for IT+HR", which didn't
+  // reconcile with pending_approvals), these two donuts show the real
+  // number of employees waiting on approval in each track.
+  const onboardingApprovalCount = pendingOnboarding;
+  const offboardingApprovalCount = pendingOffboarding;
+
+  const approvalOnboarding =
+    onboardingApprovalCount > 0
+      ? [{ name: "Onboarding approvals", value: onboardingApprovalCount, color: T.blue }]
+      : [{ name: "No pending approvals", value: 1, color: T.border }];
+
+  const approvalOffboarding =
+    offboardingApprovalCount > 0
+      ? [{ name: "Offboarding approvals", value: offboardingApprovalCount, color: T.red }]
+      : [{ name: "No pending approvals", value: 1, color: T.border }];
+
+  // Department distribution — backend provides one org-wide breakdown
+  // (department_distribution). Until it's split by onboarded/offboarded
+  // status, map it to "Onboarded by department" (current dataset is all
+  // onboarded employees) and show "no activity" for offboarded until
+  // offboarded_today > 0.
+  const departmentDistribution: { name: string; count: number }[] = Array.isArray(
+    summary.department_distribution
+  )
+    ? summary.department_distribution
+    : [];
+
+  const deptOnboarded = departmentDistribution.map((d, i) => ({
+    name: d.name,
+    value: d.count,
+    color: DEPT_COLORS[i % DEPT_COLORS.length],
+  }));
+
+  const deptOffboarded =
+    offboardedToday > 0
+      ? departmentDistribution.map((d, i) => ({
+          name: d.name,
+          value: d.count,
+          color: DEPT_COLORS[i % DEPT_COLORS.length],
+        }))
+      : [{ name: "No activity", value: 1, color: T.border }];
+
   return (
     <Sidebar>
       <div style={{ minHeight: "100vh", background: T.bg, padding: "26px 32px" }}>
@@ -364,27 +427,27 @@ const pendingApprovalsTotal =
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 22 }}>
           <KpiCard
             label="Total employees in onboarding + offboarding"
-            value={summary.total_employees}
+            value={totalEmployees}
             sub="Active across both pipelines this period"
           />
           <KpiCard
             label="Total employees onboarded"
-            value={summary.onboarded_today}
+            value={onboardedToday}
             sub="Completed onboarding, all mandatory docs cleared"
           />
           <KpiCard
             label="Total employees offboarded"
-            value={summary.offboarded_today}
+            value={offboardedToday}
             sub="Completed offboarding this period"
           />
           <KpiCard
             label="Onboarding pending"
-            value={summary.pending_onboarding}
+            value={pendingOnboarding}
             sub="Awaiting document validation or approver action"
           />
           <KpiCard
             label="Offboarding pending"
-            value={summary.pending_offboarding}
+            value={pendingOffboarding}
             sub="Awaiting clearance or approver action"
           />
           <KpiCard
@@ -399,19 +462,21 @@ const pendingApprovalsTotal =
           Department breakdown
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 6 }}>
-          <Panel title="Onboarded by department" sub="3 employees onboarded this period">
-            <DonutChart
-              data={deptOnboarded}
-              defaultTitle="Onboarded"
-              total={summary.onboarded_today}
-            />
+          <Panel
+            title="Onboarded by department"
+            sub={`${onboardedToday} employee${onboardedToday === 1 ? "" : "s"} onboarded this period`}
+          >
+            <DonutChart data={deptOnboarded} defaultTitle="Onboarded" total={onboardedToday} />
           </Panel>
-          <Panel title="Offboarded by department" sub="0 employees offboarded this period">
+          <Panel
+            title="Offboarded by department"
+            sub={`${offboardedToday} employee${offboardedToday === 1 ? "" : "s"} offboarded this period`}
+          >
             <DonutChart
               data={deptOffboarded}
               defaultTitle="Offboarded"
-              total={summary.offboarded_today}
-              showLegend={false}
+              total={offboardedToday}
+              showLegend={offboardedToday > 0}
             />
           </Panel>
         </div>
@@ -425,6 +490,9 @@ const pendingApprovalsTotal =
             <AiManualLineChart data={onboardingAiManual} />
           </Panel>
           <Panel title="Offboarding progress (this month)" sub="AI-completed vs manually-completed steps · by week">
+            {/* No offboarding activity yet (offboarded_today: 0) — chart
+                stays at 0 across all weeks rather than showing invented
+                numbers, until there's real offboarding activity. */}
             <AiManualLineChart data={offboardingAiManual} maxY={4} />
           </Panel>
         </div>
@@ -434,22 +502,33 @@ const pendingApprovalsTotal =
           Approvals pending by department
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 6 }}>
-          <Panel title="Onboarding approvals pending" sub="18 of 26 pending approvals relate to onboarding">
+          <Panel
+            title="Onboarding approvals pending"
+            sub={
+              onboardingApprovalCount === 0
+                ? "No onboarding approvals pending"
+                : `${onboardingApprovalCount} employee${onboardingApprovalCount === 1 ? "" : "s"} awaiting onboarding approval`
+            }
+          >
             <DonutChart
-    data={approvalOffboarding}
-    total={offboardingApprovalCount}
-    defaultTitle="Offboarding"
-/>
+              data={approvalOnboarding}
+              total={onboardingApprovalCount}
+              defaultTitle="Onboarding"
+            />
           </Panel>
           <Panel
-    title="Offboarding approvals pending"
-    sub={
-        offboardingApprovalCount === 0
-            ? "No offboarding approvals pending"
-            : `${offboardingApprovalCount} pending approvals relate to offboarding`
-    }
->
-            <DonutChart data={approvalOffboarding} total={8} defaultTitle="Offboarding — 8 pending" />
+            title="Offboarding approvals pending"
+            sub={
+              offboardingApprovalCount === 0
+                ? "No offboarding approvals pending"
+                : `${offboardingApprovalCount} employee${offboardingApprovalCount === 1 ? "" : "s"} awaiting offboarding approval`
+            }
+          >
+            <DonutChart
+              data={approvalOffboarding}
+              total={offboardingApprovalCount}
+              defaultTitle="Offboarding"
+            />
           </Panel>
         </div>
 
