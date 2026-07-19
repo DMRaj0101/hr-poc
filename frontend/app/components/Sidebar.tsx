@@ -64,6 +64,14 @@ function ReportsIcon({ className }: { className?: string }) {
       <path d="M3 3h18v18H3z" />
       <path d="M7 14h3v4H7zM11 10h3v8h-3zM15 6h3v12h-3z" />
     </svg>
+    );
+}
+function TrainingIcon({ className }: { className?: string }) {   // ← ADD THIS
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" />
+      <path d="M6 12v5c0 1.66 2.69 3 6 3s6-1.34 6-3v-5" />
+    </svg>
   );
 }
 
@@ -105,6 +113,7 @@ const menuBeforeAssistant = [
   { href: "/offboarding-tracker", label: "Offboarding Tracker", icon: OffboardingIcon },
   { href: "/approvals", label: "Approval Dashboard", icon: ApprovalsIcon },
   { href: "/reports", label: "Reports", icon: ReportsIcon},
+  { href: "/training", label: "Training & Learning", icon: TrainingIcon },
   { href: "/ai-insights", label: "AI Insights", icon: AiIcon },
 ];
 
