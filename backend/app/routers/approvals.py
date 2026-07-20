@@ -58,7 +58,8 @@ def get_approvals_for_role(approver_role: str, db: Session = Depends(get_db)):
             if not employee:
                 continue
             results.append({
-                "employee_id": employee.employee_id, "employee_name": employee.name,
+                "employee_id": employee.id, "employee_name": employee.name,
+                "emp_id": employee.employee_id,
                 "department": employee.department, "role": employee.role,
                 "experience_level": employee.experience_level,
                 "workflow_type": workflow_type,
